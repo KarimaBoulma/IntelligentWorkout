@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">IntelligentWorkout</string>
+    <string name="btnPlay">Play</string>
+    <string name="btnRes">Resume</string>
+    <string name="btnHS">High Score</string>
+    <string name="btnReturn">Return</string>
+</resources>
