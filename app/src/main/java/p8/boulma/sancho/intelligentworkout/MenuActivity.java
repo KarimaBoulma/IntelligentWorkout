@@ -1,16 +1,14 @@
 package p8.boulma.sancho.intelligentworkout;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
-import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.view.View.OnClickListener;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -20,13 +18,21 @@ import java.util.ArrayList;
 public class MenuActivity extends AppCompatActivity {
 
     private MediaPlayer mPlayer =null;
-    final ArrayList SelectedParams =new ArrayList();
+    final ArrayList<String> SelectedParams =new <String> ArrayList();
     final boolean[] checkedParams = new boolean[10];
+    CharSequence [] ch ;
+    private Context context;
+    SharedPreferences sharedPref;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
+        context= getApplicationContext();
+        ch = new CharSequence[getResources().getStringArray(R.array.Params).length];
+        sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+
 
     }
     public void goOnActivity(View v, boolean isGame){
@@ -81,24 +87,34 @@ public class MenuActivity extends AppCompatActivity {
 
     }
     public void showPopUpParam(){
-
+        for(int i=0 ; i<sharedPref.getAll().size();i++){
+            if(sharedPref.getAll().containsValue(i+1)){
+                checkedParams[i]=true;
+            }else{
+                checkedParams[i]=false;
+            }
+        }
         AlertDialog.Builder helpBuilder = new AlertDialog.Builder(this);
         helpBuilder.setTitle("Settings");
-        helpBuilder.setMultiChoiceItems(R.array.Params,checkedParams,new DialogInterface.OnMultiChoiceClickListener(){
+        ch=getResources().getStringArray(R.array.Params);
+        helpBuilder.setMultiChoiceItems(ch,checkedParams,new DialogInterface.OnMultiChoiceClickListener(){
            @Override
             public void onClick(DialogInterface dialog,int which,boolean isChecked){
+               SharedPreferences.Editor editor = sharedPref.edit();
                if(isChecked){
-                       SelectedParams.add(which);
-               }else if(SelectedParams.contains(which)){
-                   SelectedParams.remove(Integer.valueOf(which));
+                   //on decale de 1 car le 0 considerer comme la valeur "non cocher "
+                   editor.putInt(ch[which].toString(),which+1);
+               }else if(sharedPref.getAll().containsKey(ch[which].toString())){
+                   editor.remove(ch[which].toString());
+
                }
+               editor.commit();
            }
         });
 
         helpBuilder.setPositiveButton("Ok",new DialogInterface.OnClickListener(){
             public void onClick(DialogInterface dialog,int which){
-                //sauvegarde des paramètres
-                System.out.println(SelectedParams.toString());
+                //boutton visible pour fermer la fenêtre
             }
         });
         AlertDialog helpDialog = helpBuilder.create();
