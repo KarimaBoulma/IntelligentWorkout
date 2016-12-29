@@ -114,19 +114,27 @@ public class MenuActivity extends AppCompatActivity {
 
         helpBuilder.setPositiveButton("Ok",new DialogInterface.OnClickListener(){
             public void onClick(DialogInterface dialog,int which){
-                //boutton visible pour fermer la fenêtre
+                //On appelle la fonction appsound qui lance ou non la musique
+
             }
         });
         AlertDialog helpDialog = helpBuilder.create();
         helpDialog.show();
 
     }
-    private void appSound(int resId){
-        if (mPlayer!=null){
-            mPlayer.stop();
-            mPlayer.release();
+    private void appSound(){
+        if(sharedPref.getInt("sound",0)==1) {
+            try {
+                mPlayer = MediaPlayer.create(this, R.raw.sound);
+            } catch (Exception e) {
+                mPlayer = null;
+            }
+            if (mPlayer != null) {
+                mPlayer.setVolume(5, 5);
+                mPlayer.setLooping(true);
+                mPlayer.start();
+            }
         }
-        mPlayer=MediaPlayer.create(this,resId);
-        mPlayer.start();
+
     }
 }
