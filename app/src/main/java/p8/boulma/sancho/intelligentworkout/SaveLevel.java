@@ -15,6 +15,7 @@ import java.util.ArrayList;
  * Created by Mathilde on 30/12/2016.
  */
 public class SaveLevel {
+
     private int idLevel;
     private static int[][] ref;
     private static int i, j;
@@ -22,7 +23,7 @@ public class SaveLevel {
     private static ArrayList<Integer> initBRed;
     private int hsMin,hsSec,nbMoves;
 
-
+    //on cree cet objet avec le fichier save.txt
     public SaveLevel(OutputStream output,int idLevel,ArrayList<Integer> initBRed,int hsMin,int hsSec,int nbMoves,int [][]ref){
         try {
             this.data = new BufferedWriter(new OutputStreamWriter(output));
