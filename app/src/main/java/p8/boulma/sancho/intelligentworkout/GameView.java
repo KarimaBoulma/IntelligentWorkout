@@ -1,6 +1,7 @@
 package p8.boulma.sancho.intelligentworkout;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,6 +9,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
@@ -31,29 +33,31 @@ import java.util.Timer;
  * Created by Mathilde on 23/12/2016.
  */
 
-public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runnable{
+public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runnable {
     SurfaceHolder holder;
+    SharedPreferences sharedPref;
+    private MediaPlayer mPlayer = null;
     private Resources mRes;
     private Context mContext;
-    private boolean in,isWon;
+    private boolean in, isWon;
     Paint paint;
-    private int levelMax =4;
+    private int levelMax = 4;
     private int nMoves;
     // tableau modelisant la miniature du jeu
-    int [][] miniature;
+    int[][] miniature;
 
     // ancres pour pouvoir centrer la miniature du jeu
-    int        miniTopAnchor;                   // coordonn�es en Y du point d'ancrage de notre carte
-    int        miniLeftAnchor;                  // coordonn�es en X du point d'ancrage de notre carte
+    int miniTopAnchor;                   // coordonn�es en Y du point d'ancrage de notre carte
+    int miniLeftAnchor;                  // coordonn�es en X du point d'ancrage de notre carte
     // ancres pour pouvoir centrer la grille du jeu
-    int        gridTopAnchor;                   // coordonn�es en Y du point d'ancrage de notre carte
-    int        gridLeftAnchor;                  // coordonn�es en X du point d'ancrage de notre carte
+    int gridTopAnchor;                   // coordonn�es en Y du point d'ancrage de notre carte
+    int gridLeftAnchor;                  // coordonn�es en X du point d'ancrage de notre carte
 
     // taille de la matrice fixe pour ce jeu
-    static  int    matrixWidth  = 5;
-    static  int    matrixHeight  =5;
-    static  int    gridTileSize = 120;
-    static  int    miniTileSize =40;
+    static int matrixWidth = 5;
+    static int matrixHeight = 5;
+    static int gridTileSize = 120;
+    static int miniTileSize = 40;
 
     //image
     private Bitmap mblock_b;
@@ -65,18 +69,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
 
 
     // tableau representant la grille du jeu
-    int [][] grid  ;
+    int[][] grid;
 
     //nombre de block rouge
     int nBred;
     // position de reference des block Rouges
-    int [][] refBred  ;
+    int[][] refBred;
 
     //Objet  pour le timer
-    private Long startTimer,min,sec,spentTime;
-    private Handler handler=new Handler();
+    private Long startTimer, min, sec, spentTime;
+    private Handler handler = new Handler();
 
-   // Thread d'actualisation de la vue ;
+    // Thread d'actualisation de la vue ;
     private Thread cv_thread;
 
 
@@ -84,44 +88,46 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     private RefLevel refLevel;
 
     //Numero du niveau
-    private int level=1;
+    private int level = 1;
 
     public GameView(Context context, AttributeSet attrs) {
 
-        super(context,attrs);
+        super(context, attrs);
 
         // permet d'ecouter les surfaceChanged, surfaceCreated, surfaceDestroyed
         holder = getHolder();
         holder.addCallback(this);
 
         //chargement des images
-        mContext=context;
+        mContext = context;
         mRes = mContext.getResources();
-        mblock_b= BitmapFactory.decodeResource(mRes,R.drawable.blue);
-        mblock_r= BitmapFactory.decodeResource(mRes,R.drawable.red);
-        gblock_b= BitmapFactory.decodeResource(mRes,R.drawable.gblue);
-        gblock_r= BitmapFactory.decodeResource(mRes,R.drawable.gred);
-        win = BitmapFactory.decodeResource(mRes,R.drawable.win);
-
+        mblock_b = BitmapFactory.decodeResource(mRes, R.drawable.blue);
+        mblock_r = BitmapFactory.decodeResource(mRes, R.drawable.red);
+        gblock_b = BitmapFactory.decodeResource(mRes, R.drawable.gblue);
+        gblock_r = BitmapFactory.decodeResource(mRes, R.drawable.gred);
+        win = BitmapFactory.decodeResource(mRes, R.drawable.win);
+        sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
         initparameters();
         //début du  timer
-        startTimer=System.currentTimeMillis();
-        cv_thread=new Thread(this);
+        startTimer = System.currentTimeMillis();
+        cv_thread = new Thread(this);
         //prise de focus pour la gestion des touches
         setFocusable(true);
 
 
     }
+
     //Chargement du niveau a partir du tableau de reference des niveau
-    private void loadlevel(){
-        refLevel=new RefLevel(mContext.getResources().openRawResource(R.raw.levels),level);
-        miniature= refLevel.getRef();
-        Toast t = Toast.makeText(mContext, "Level "+level, Toast.LENGTH_LONG);
+    private void loadlevel() {
+        refLevel = new RefLevel(mContext.getResources().openRawResource(R.raw.levels), level);
+        miniature = refLevel.getRef();
+        Toast t = Toast.makeText(mContext, "Level " + level, Toast.LENGTH_LONG);
         t.show();
-        nBred=refLevel.getnBRed();
+        nBred = refLevel.getnBRed();
 
     }
-    public void initparameters(){
+
+    public void initparameters() {
         paint = new Paint();
         paint.setDither(true);
         paint.setColor(0xFFFFFF00);
@@ -130,28 +136,31 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStrokeWidth(3);
         paint.setTextAlign(Paint.Align.LEFT);
-        miniature=new int [matrixHeight][matrixWidth];
-        grid=new int [matrixHeight][matrixWidth];
+        miniature = new int[matrixHeight][matrixWidth];
+        grid = new int[matrixHeight][matrixWidth];
         loadlevel();
-        nMoves=0;
+        nMoves = 0;
+        appSound();
 
         createGridAleatoire();
     }
+
     // Dessiner la miniature du jeu
     private void paintMiniature(Canvas canvas) {
-        for (int i=0; i< matrixHeight; i++) {
-            for (int j=0; j< matrixWidth; j++) {
+        for (int i = 0; i < matrixHeight; i++) {
+            for (int j = 0; j < matrixWidth; j++) {
                 switch (miniature[i][j]) {
                     case 0:
-                        canvas.drawBitmap(mblock_b, miniLeftAnchor+ i*miniTileSize, miniTopAnchor+ j*miniTileSize, paint);
+                        canvas.drawBitmap(mblock_b, miniLeftAnchor + i * miniTileSize, miniTopAnchor + j * miniTileSize, paint);
                         break;
                     case 1:
-                        canvas.drawBitmap(mblock_r,miniLeftAnchor+ i*miniTileSize, miniTopAnchor+ j*miniTileSize, paint);
+                        canvas.drawBitmap(mblock_r, miniLeftAnchor + i * miniTileSize, miniTopAnchor + j * miniTileSize, paint);
                         break;
                 }
             }
         }
     }
+
     // Dessine la barre d'affichage du timer
     private void paintInfo(Canvas canvas) {
         paint.setColor(0xff0000);
@@ -159,14 +168,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         canvas.drawPaint(paint);
         paint.setColor(Color.WHITE);
         paint.setTextSize(60);
-        String text="Time "+min+":"+sec+"         Moves: "+nMoves;
-        canvas.drawText(text,20,80,paint);
-        }
+        String text = "Time " + min + ":" + sec + "         Moves: " + nMoves;
+        canvas.drawText(text, 20, 80, paint);
+    }
 
     // Cree la grille aléatoire du jeu
-    private void createGridAleatoire(){
-        int nbr=0;
-        while(nbr!=nBred){
+    private void createGridAleatoire() {
+        int nbr = 0;
+        while (nbr != nBred) {
             for (int i = 0; i < matrixHeight; i++) {
                 for (int j = 0; j < matrixWidth; j++) {
                     if (nbr != nBred) {
@@ -182,16 +191,17 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
             }
         }
     }
+
     // Dessine la grille aléatoire du jeu
     private void paintGrid(Canvas canvas) {
-        for (int i=0; i< matrixHeight; i++) {
-            for (int j=0; j< matrixWidth; j++) {
+        for (int i = 0; i < matrixHeight; i++) {
+            for (int j = 0; j < matrixWidth; j++) {
                 switch (grid[i][j]) {
                     case 0:
-                        canvas.drawBitmap(gblock_b, gridLeftAnchor+ j*gridTileSize, gridTopAnchor+ i*gridTileSize, null);
+                        canvas.drawBitmap(gblock_b, gridLeftAnchor + j * gridTileSize, gridTopAnchor + i * gridTileSize, null);
                         break;
                     case 1:
-                        canvas.drawBitmap(gblock_r,gridLeftAnchor+ j*gridTileSize, gridTopAnchor+ i*gridTileSize, null);
+                        canvas.drawBitmap(gblock_r, gridLeftAnchor + j * gridTileSize, gridTopAnchor + i * gridTileSize, null);
                         break;
                 }
             }
@@ -201,68 +211,73 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
 
     // permet d'identifier si la partie est gagnee
     private boolean isWon() {
-        int nbredGood=0;
-        ArrayList<Integer> a=refLevel.getInitBRed();
-        for(int i=0;i<nBred;i++) {
+        int nbredGood = 0;
+        ArrayList<Integer> a = refLevel.getInitBRed();
+        for (int i = 0; i < nBred; i++) {
             if (grid[a.get(i)][a.get(i + 1)] == 1) {
                 nbredGood++;
             }
         }
-        if(nbredGood==nBred){
-            isWon=true;
+        if (nbredGood == nBred) {
+            isWon = true;
 
+        } else {
+            isWon = false;
         }
-        else {isWon=false;}
         return isWon;
     }
+
     // dessin du gagne si gagne
     private void paintWin(Canvas canvas) {
-        int tileSize=20;
-        canvas.drawBitmap(win, gridLeftAnchor+ 3*tileSize, gridTopAnchor+ 4*tileSize, null);
+        int tileSize = 20;
+        canvas.drawBitmap(win, gridLeftAnchor + 3 * tileSize, gridTopAnchor + 4 * tileSize, null);
 
     }
 
-    protected void nDraw(Canvas canvas){
-        barreDeTps=new Rect(0,0,getWidth(),100);
-        miniTopAnchor  = 10+barreDeTps.height();
-        miniLeftAnchor = (getWidth()- matrixWidth*miniTileSize)/2; //CENTRER LA MINIATURE au milieu horizontalement
-        gridTopAnchor= miniTopAnchor+miniTileSize*matrixHeight+100;
-        gridLeftAnchor =(getWidth()-gridTileSize*matrixHeight)/2;//pour centrer la grille de jeu
-        canvas.drawRGB(0,0,0);
-        if(isWon()){
+    protected void nDraw(Canvas canvas) {
+        barreDeTps = new Rect(0, 0, getWidth(), 100);
+        miniTopAnchor = 10 + barreDeTps.height();
+        miniLeftAnchor = (getWidth() - matrixWidth * miniTileSize) / 2; //CENTRER LA MINIATURE au milieu horizontalement
+        gridTopAnchor = miniTopAnchor + miniTileSize * matrixHeight + 100;
+        gridLeftAnchor = (getWidth() - gridTileSize * matrixHeight) / 2;//pour centrer la grille de jeu
+        canvas.drawRGB(0, 0, 0);
+        if (isWon()) {
             paintWin(canvas);
 
-        }else {
+        } else {
             paintInfo(canvas);
             paintMiniature(canvas);
             paintGrid(canvas);
 
         }
     }
+
     // callback sur le cycle de vie de la surfaceview
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-       //la surface change ex quand l'utilsateur tourne son téléphone
+        //la surface change ex quand l'utilsateur tourne son téléphone
     }
+
     public void surfaceCreated(SurfaceHolder arg0) {
 
         Log.i("-> FCT <-", "surfaceCreated");
-        in=true;
+        in = true;
         cv_thread.start();
     }
 
 
     public void surfaceDestroyed(SurfaceHolder arg0) {
         Log.i("-> FCT <-", "surfaceDestroyed");
-        in=false;
+        in = false;
     }
+
     public void run() {
         while (in) {
             Canvas c = null;
-            spentTime=System.currentTimeMillis()-startTimer;
-            min=(spentTime/1000)/60;
-            sec=(spentTime/1000)%60;
+            spentTime = System.currentTimeMillis() - startTimer;
+            min = (spentTime / 1000) / 60;
+            sec = (spentTime / 1000) % 60;
             try {
-               // holder.setFixedSize(500,900);
+                // holder.setFixedSize(500,900);
                 c = holder.lockCanvas();
                 synchronized (holder) {
                     nDraw(c);
@@ -280,68 +295,71 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
 
         }
     }
-    public void moveBlocks(String move,int x,int y){
+
+    public void moveBlocks(String move, int x, int y) {
         nMoves++;
-        int i,tmp;
-        switch (move){
+        int i, tmp;
+        switch (move) {
             case "right":
-                for(i=0;i<matrixWidth-1;
-                    i++){
-                tmp=grid[y][i+1];
-                grid[y][i+1]=grid[y][0];
-                grid[y][0]=tmp;
-            }
+                for (i = 0; i < matrixWidth - 1;
+                     i++) {
+                    tmp = grid[y][i + 1];
+                    grid[y][i + 1] = grid[y][0];
+                    grid[y][0] = tmp;
+                }
                 break;
             case "left":
-                for(i=3;0<=i;i--){
-                tmp=grid[y][i+1];
-                grid[y][i+1]=grid[y][0];
-                grid[y][0]=tmp;
-            }
+                for (i = 3; 0 <= i; i--) {
+                    tmp = grid[y][i + 1];
+                    grid[y][i + 1] = grid[y][0];
+                    grid[y][0] = tmp;
+                }
                 break;
             case "up":
-                for(i=3;0<=i;i--){
-                tmp=grid[i+1][x];
-                grid[i+1][x]=grid[0][x];
-                grid[0][x]=tmp;
-            }
+                for (i = 3; 0 <= i; i--) {
+                    tmp = grid[i + 1][x];
+                    grid[i + 1][x] = grid[0][x];
+                    grid[0][x] = tmp;
+                }
                 break;
             case "down":
-                for(i=0;i<matrixWidth-1;i++){
-                tmp=grid[i+1][x];
-                grid[i+1][x]=grid[0][x];
-                grid[0][x]=tmp;
-            }
+                for (i = 0; i < matrixWidth - 1; i++) {
+                    tmp = grid[i + 1][x];
+                    grid[i + 1][x] = grid[0][x];
+                    grid[0][x] = tmp;
+                }
                 break;
         }
 
     }
-    float x1=0,y1=0;
+
+    float x1 = 0, y1 = 0;
+
     // fonction permettant de recuperer les evenements tactiles
-    public boolean onTouchEvent (MotionEvent event) {
+    public boolean onTouchEvent(MotionEvent event) {
         float x2, y2, dx, dy;
         String direction;
-        List <Integer> coordonees;
-        if(isWon){
+        List<Integer> coordonees;
+        if (isWon) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     x1 = event.getX();
                     y1 = event.getY();
-                    if((gridLeftAnchor+60<=x1)&&(x1<=gridLeftAnchor+60+win.getWidth())){
-                        if((gridTopAnchor+80<=y1)&&(y1<=gridLeftAnchor+80+getHeight())){
-                            if(level==levelMax) {
+                    if ((gridLeftAnchor + 60 <= x1) && (x1 <= gridLeftAnchor + 60 + win.getWidth())) {
+                        if ((gridTopAnchor + 80 <= y1) && (y1 <= gridLeftAnchor + 80 + getHeight())) {
+                            if (level == levelMax) {
                                 level = 1;
                                 initparameters();
-                            }else {
+                            } else {
                                 level++;
                                 initparameters();
                             }
                         }
                     }
                     break;
-                    }
+            }
 
-        }else {
+        } else {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     x1 = event.getX();
@@ -381,39 +399,65 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         return true;
         //super.onTouchEvent(event);
     }
-    public List<Integer> findCaseInMatrix(float x, float y){
-        int i=0;
-        boolean isNotfindY=true,isNotfindX=true;
-        while(isNotfindY&&(i<gridTileSize*5)){
-            boolean pp=gridTopAnchor+i<=y;
-            boolean pg=y<gridTopAnchor+i+gridTileSize;
-            if (pp&&pg) {
-                isNotfindY=false;
-                y=i/gridTileSize;
-            }else{
-                i+=gridTileSize;
+
+    public List<Integer> findCaseInMatrix(float x, float y) {
+        int i = 0;
+        boolean isNotfindY = true, isNotfindX = true;
+        while (isNotfindY && (i < gridTileSize * 5)) {
+            boolean pp = gridTopAnchor + i <= y;
+            boolean pg = y < gridTopAnchor + i + gridTileSize;
+            if (pp && pg) {
+                isNotfindY = false;
+                y = i / gridTileSize;
+            } else {
+                i += gridTileSize;
             }
         }
-        i=0;
-        while(isNotfindX&&(i<gridTileSize*5)) {
-            boolean pp=gridLeftAnchor+i<=x;
-            boolean pg=x<gridLeftAnchor+i+gridTileSize;
-            if (pp&&pg) {
-                isNotfindX=false;
-                x=i/gridTileSize;
-            }else{
-                i+=gridTileSize;
+        i = 0;
+        while (isNotfindX && (i < gridTileSize * 5)) {
+            boolean pp = gridLeftAnchor + i <= x;
+            boolean pg = x < gridLeftAnchor + i + gridTileSize;
+            if (pp && pg) {
+                isNotfindX = false;
+                x = i / gridTileSize;
+            } else {
+                i += gridTileSize;
             }
         }
-        List<Integer> coordonnees=new ArrayList<Integer>();
-        coordonnees.add(0,(int)x);
-        coordonnees.add(1,(int)y);
+        List<Integer> coordonnees = new ArrayList<Integer>();
+        coordonnees.add(0, (int) x);
+        coordonnees.add(1, (int) y);
         return coordonnees;
 
 
     }
 
+    private void appSound() {
+        int sound=0;
+        String s =sharedPref.getAll().toString();
+        for (String st :s.split(",")){
+            if(st.contains("Sound")){
+                if(st.contains("1")){
+                    sound=1;
+                }else{
+                    sound=0;
+                }
+            }
+        }
+        if (sound == 1) {
+            try {
+                int rId = getResources().getIdentifier("sound", "raw", mContext.getPackageName());
+                mPlayer = MediaPlayer.create(this.mContext, rId);// musique bensound-funkysuspense bensound.com
+            } catch (Exception e) {
+                mPlayer = null;
+            }
+            if (mPlayer != null) {
+                mPlayer.setVolume(5, 5);
+                mPlayer.setLooping(true);
+                mPlayer.start();
+            }
+        }
 
 
-
+    }
 }

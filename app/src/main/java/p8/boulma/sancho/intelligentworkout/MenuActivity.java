@@ -17,7 +17,6 @@ import java.util.ArrayList;
  */
 public class MenuActivity extends AppCompatActivity {
 
-    private MediaPlayer mPlayer =null;
     final boolean[] checkedParams = new boolean[10];
     CharSequence [] ch ;
     private Context context;
@@ -31,7 +30,7 @@ public class MenuActivity extends AppCompatActivity {
         context= getApplicationContext();
         ch = new CharSequence[getResources().getStringArray(R.array.Params).length];
         sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
-        appSound();
+        System.out.println(sharedPref.getAll().toString());
 
 
     }
@@ -50,9 +49,6 @@ public class MenuActivity extends AppCompatActivity {
         final int id = v.getId();
         switch (id) {
             case R.id.buttonExit:
-                if(mPlayer!=null){
-                    mPlayer.stop();
-                }
                 finish();
                 System.exit(0);
                 break;
@@ -123,21 +119,6 @@ public class MenuActivity extends AppCompatActivity {
         });
         AlertDialog helpDialog = helpBuilder.create();
         helpDialog.show();
-
-    }
-    private void appSound(){
-        if(sharedPref.getInt("sound",0)==1) {
-            try {
-                mPlayer = MediaPlayer.create(this, R.raw.sound);// musique bensound-funkysuspense bensound.com
-            } catch (Exception e) {
-                mPlayer = null;
-            }
-            if (mPlayer != null) {
-                mPlayer.setVolume(5, 5);
-                mPlayer.setLooping(true);
-                mPlayer.start();
-            }
-        }
 
     }
 }
