@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 /**
  * Created by Mathilde on 03/11/2016.
@@ -14,8 +15,10 @@ public class RefLevel {
     private static int[][] ref;
     private static int i, j;
     private BufferedReader data;
-    private static int [][] initBRed;
+    private static ArrayList<Integer> initBRed;
     private int nBRed, nLevel,hsMin,hsSec,nbMoves;
+
+
 
 
     public RefLevel(InputStream input, int idLevel){
@@ -42,7 +45,7 @@ public class RefLevel {
         return ref;
     }
 
-    public static int[][] getInitBRed() {
+    public static ArrayList<Integer> getInitBRed() {
         return initBRed;
     }
 
@@ -86,22 +89,17 @@ public class RefLevel {
 
     public void createBlockRed(String line){
         nBRed =(line.length()-1)/4;
-        initBRed=new int[nBRed][2];
-        int a=0,b=0;
+        initBRed=new ArrayList<>(nBRed);
+        int a=0;
         for (String cst : line.split(",")){
-            if(b==2) {
-                a++;
-                b=0;
-            }
             if(cst.contains("{")) {
-                initBRed[a][b] = Integer.parseInt(""+cst.charAt(1));
+                initBRed.add(a,Integer.parseInt(""+cst.charAt(1)));
             }else if (cst.contains("}")) {
-                initBRed[a][b] = Integer.parseInt("" + cst.charAt(0));
+                initBRed.add(a,Integer.parseInt("" + cst.charAt(0)));
             }else {
-                initBRed[a][b] = Integer.parseInt(cst);
+                initBRed.add(a, Integer.parseInt(cst));
             }
-            b++;
-
+            a++;
         }
     }
     public void createTerrain(String line) {
@@ -120,6 +118,27 @@ public class RefLevel {
         }
 
     }
+   /* private void saveHighScore(){
+        String line;
+        try {
+            data = new BufferedReader(new OutputStreamWriter());
+            line = data.readLine();
+            while (!line.contains("LEVEL " + idLevel)) {
+                line = data.readLine();
+            }
+            do {
+                line = data.readLine();
+
+            }while (line.charAt(0) != '{');
+            data.
+            createBlockRed(line);
+            setHighScore(data.readLine());
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+    }*/
 
 
 }

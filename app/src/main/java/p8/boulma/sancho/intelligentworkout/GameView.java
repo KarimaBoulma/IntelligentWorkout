@@ -5,13 +5,27 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
+import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.Timer;
 
 /**
  * Created by Mathilde on 23/12/2016.
@@ -21,8 +35,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     SurfaceHolder holder;
     private Resources mRes;
     private Context mContext;
-    private boolean in;
+    private boolean in,isWon;
     Paint paint;
+    private int levelMax =4;
+    private int nMoves;
     // tableau modelisant la miniature du jeu
     int [][] miniature;
 
@@ -45,6 +61,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     private Bitmap gblock_b;
     private Bitmap gblock_r;
     private Bitmap win;
+    private Rect barreDeTps;
+
 
     // tableau representant la grille du jeu
     int [][] grid  ;
@@ -54,8 +72,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     // position de reference des block Rouges
     int [][] refBred  ;
 
-    //Thread pour le timer
-   // private Thread time_thread;
+    //Objet  pour le timer
+    private Long startTimer,min,sec,spentTime;
+    private Handler handler=new Handler();
+
+   // Thread d'actualisation de la vue ;
     private Thread cv_thread;
 
 
@@ -83,8 +104,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         win = BitmapFactory.decodeResource(mRes,R.drawable.win);
 
         initparameters();
-        //creation du thread pour le timer
-        //time_thread = new Thread(this);
+        //début du  timer
+        startTimer=System.currentTimeMillis();
         cv_thread=new Thread(this);
         //prise de focus pour la gestion des touches
         setFocusable(true);
@@ -95,13 +116,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     private void loadlevel(){
         refLevel=new RefLevel(mContext.getResources().openRawResource(R.raw.levels),level);
         miniature= refLevel.getRef();
+        Toast t = Toast.makeText(mContext, "Level "+level, Toast.LENGTH_LONG);
+        t.show();
         nBred=refLevel.getnBRed();
 
     }
     public void initparameters(){
         paint = new Paint();
-        paint.setColor(0xff0000);
-
         paint.setDither(true);
         paint.setColor(0xFFFFFF00);
         paint.setStyle(Paint.Style.STROKE);
@@ -112,6 +133,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         miniature=new int [matrixHeight][matrixWidth];
         grid=new int [matrixHeight][matrixWidth];
         loadlevel();
+        nMoves=0;
+
         createGridAleatoire();
     }
     // Dessiner la miniature du jeu
@@ -131,9 +154,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     }
     // Dessine la barre d'affichage du timer
     private void paintInfo(Canvas canvas) {
-      //  canvas.drawBitmap(block_b, carteLeftAnchor+ j*carteTileSize, carteTopAnchor+ i*carteTileSize, null);
-
-    }
+        paint.setColor(0xff0000);
+        paint.setStyle(Paint.Style.FILL);
+        canvas.drawPaint(paint);
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(60);
+        String text="Time "+min+":"+sec+"         Moves: "+nMoves;
+        canvas.drawText(text,20,80,paint);
+        }
 
     // Cree la grille aléatoire du jeu
     private void createGridAleatoire(){
@@ -173,22 +201,37 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
 
     // permet d'identifier si la partie est gagnee
     private boolean isWon() {
+        int nbredGood=0;
+        ArrayList<Integer> a=refLevel.getInitBRed();
+        for(int i=0;i<nBred;i++) {
+            if (grid[a.get(i)][a.get(i + 1)] == 1) {
+                nbredGood++;
+            }
+        }
+        if(nbredGood==nBred){
+            isWon=true;
 
-        return false;
+        }
+        else {isWon=false;}
+        return isWon;
     }
     // dessin du gagne si gagne
     private void paintWin(Canvas canvas) {
-        //canvas.drawBitmap(win, carteLeftAnchor+ 3*miniTileSize, carteTopAnchor+ 4*miniTileSize, null);
+        int tileSize=20;
+        canvas.drawBitmap(win, gridLeftAnchor+ 3*tileSize, gridTopAnchor+ 4*tileSize, null);
+
     }
 
     protected void nDraw(Canvas canvas){
-        miniTopAnchor  = 10;
+        barreDeTps=new Rect(0,0,getWidth(),100);
+        miniTopAnchor  = 10+barreDeTps.height();
         miniLeftAnchor = (getWidth()- matrixWidth*miniTileSize)/2; //CENTRER LA MINIATURE au milieu horizontalement
-        gridTopAnchor= miniTopAnchor+miniTileSize*matrixHeight+150;
+        gridTopAnchor= miniTopAnchor+miniTileSize*matrixHeight+100;
         gridLeftAnchor =(getWidth()-gridTileSize*matrixHeight)/2;//pour centrer la grille de jeu
         canvas.drawRGB(0,0,0);
         if(isWon()){
             paintWin(canvas);
+
         }else {
             paintInfo(canvas);
             paintMiniature(canvas);
@@ -215,6 +258,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     public void run() {
         while (in) {
             Canvas c = null;
+            spentTime=System.currentTimeMillis()-startTimer;
+            min=(spentTime/1000)/60;
+            sec=(spentTime/1000)%60;
             try {
                // holder.setFixedSize(500,900);
                 c = holder.lockCanvas();
@@ -234,6 +280,139 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
 
         }
     }
+    public void moveBlocks(String move,int x,int y){
+        nMoves++;
+        int i,tmp;
+        switch (move){
+            case "right":
+                for(i=0;i<matrixWidth-1;
+                    i++){
+                tmp=grid[y][i+1];
+                grid[y][i+1]=grid[y][0];
+                grid[y][0]=tmp;
+            }
+                break;
+            case "left":
+                for(i=3;0<=i;i--){
+                tmp=grid[y][i+1];
+                grid[y][i+1]=grid[y][0];
+                grid[y][0]=tmp;
+            }
+                break;
+            case "up":
+                for(i=3;0<=i;i--){
+                tmp=grid[i+1][x];
+                grid[i+1][x]=grid[0][x];
+                grid[0][x]=tmp;
+            }
+                break;
+            case "down":
+                for(i=0;i<matrixWidth-1;i++){
+                tmp=grid[i+1][x];
+                grid[i+1][x]=grid[0][x];
+                grid[0][x]=tmp;
+            }
+                break;
+        }
+
+    }
+    float x1=0,y1=0;
+    // fonction permettant de recuperer les evenements tactiles
+    public boolean onTouchEvent (MotionEvent event) {
+        float x2, y2, dx, dy;
+        String direction;
+        List <Integer> coordonees;
+        if(isWon){
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    x1 = event.getX();
+                    y1 = event.getY();
+                    if((gridLeftAnchor+60<=x1)&&(x1<=gridLeftAnchor+60+win.getWidth())){
+                        if((gridTopAnchor+80<=y1)&&(y1<=gridLeftAnchor+80+getHeight())){
+                            if(level==levelMax) {
+                                level = 1;
+                                initparameters();
+                            }else {
+                                level++;
+                                initparameters();
+                            }
+                        }
+                    }
+                    break;
+                    }
+
+        }else {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    x1 = event.getX();
+                    y1 = event.getY();
+                    break;
+                case MotionEvent.ACTION_UP:
+                    x2 = event.getX();
+                    y2 = event.getY();
+                    if ((x1 != x2) || (y2 != y1)) {
+                        dx = x2 - x1;
+                        dy = y2 - y1;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            if (dx > 0) {
+                                direction = "right";
+                            } else {
+                                direction = "left";
+                            }
+                        } else {
+                            if (dy > 0) {
+                                direction = "down";
+                            } else {
+                                direction = "up";
+                            }
+                        }
+                        coordonees = findCaseInMatrix(x1, y1);
+                        if ((coordonees.get(0) < matrixWidth) && (coordonees.get(1) < matrixHeight)) {
+                            moveBlocks(direction, coordonees.get(0), coordonees.get(1));
+                        } else {
+                            //envoi un message a l'utilisateur pour lui dire qu ele mouvements est en dehors de grille
+                            Toast t = Toast.makeText(mContext, "Mouvement en dehors de la grille de jeu", Toast.LENGTH_SHORT);
+                            t.show();
+                        }
+                        break;
+                    }
+            }
+        }
+        return true;
+        //super.onTouchEvent(event);
+    }
+    public List<Integer> findCaseInMatrix(float x, float y){
+        int i=0;
+        boolean isNotfindY=true,isNotfindX=true;
+        while(isNotfindY&&(i<gridTileSize*5)){
+            boolean pp=gridTopAnchor+i<=y;
+            boolean pg=y<gridTopAnchor+i+gridTileSize;
+            if (pp&&pg) {
+                isNotfindY=false;
+                y=i/gridTileSize;
+            }else{
+                i+=gridTileSize;
+            }
+        }
+        i=0;
+        while(isNotfindX&&(i<gridTileSize*5)) {
+            boolean pp=gridLeftAnchor+i<=x;
+            boolean pg=x<gridLeftAnchor+i+gridTileSize;
+            if (pp&&pg) {
+                isNotfindX=false;
+                x=i/gridTileSize;
+            }else{
+                i+=gridTileSize;
+            }
+        }
+        List<Integer> coordonnees=new ArrayList<Integer>();
+        coordonnees.add(0,(int)x);
+        coordonnees.add(1,(int)y);
+        return coordonnees;
+
+
+    }
+
 
 
 
