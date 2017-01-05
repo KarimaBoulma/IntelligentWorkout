@@ -77,7 +77,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     int[][] refBred;
 
     //Objet  pour le timer
-    private Long startTimer, min, sec, spentTime;
+    private Long startTimer, min, sec, spentTime, finalTime;
     private Handler handler = new Handler();
 
     // Thread d'actualisation de la vue ;
@@ -109,7 +109,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
         initparameters();
         //début du  timer
-        startTimer = System.currentTimeMillis();
         cv_thread = new Thread(this);
         //prise de focus pour la gestion des touches
         setFocusable(true);
@@ -139,6 +138,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         miniature = new int[matrixHeight][matrixWidth];
         grid = new int[matrixHeight][matrixWidth];
         loadlevel();
+        startTimer = System.currentTimeMillis();
         nMoves = 0;
         appSound();
 
@@ -219,6 +219,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
             }
         }
         if (nbredGood == nBred) {
+            finalTime=spentTime;
             isWon = true;
 
         } else {
