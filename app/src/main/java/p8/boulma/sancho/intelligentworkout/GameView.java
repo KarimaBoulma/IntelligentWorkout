@@ -213,9 +213,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     private boolean isWon() {
         int nbredGood = 0;
         ArrayList<Integer> a = refLevel.getInitBRed();
-        for (int i = 0; i < nBred; i++) {
+        System.out.println(a.toString());
+        for (int i = 0; i < a.size()-1; i++) {
             if (grid[a.get(i)][a.get(i + 1)] == 1) {
                 nbredGood++;
+                i++;
             }
         }
         if (nbredGood == nBred) {
