@@ -11,23 +11,16 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.media.MediaPlayer;
 import android.os.Handler;
-import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.Timer;
 
 /**
  * Created by Mathilde on 23/12/2016.
@@ -35,7 +28,7 @@ import java.util.Timer;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runnable {
     SurfaceHolder holder;
-    SharedPreferences sharedPref;
+    SharedPreferences sharedPref,sharedPrefLevel;
     private MediaPlayer mPlayer = null;
     private Resources mRes;
     private Context mContext;
@@ -106,7 +99,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         gblock_b = BitmapFactory.decodeResource(mRes, R.drawable.gblue);
         gblock_r = BitmapFactory.decodeResource(mRes, R.drawable.gred);
         win = BitmapFactory.decodeResource(mRes, R.drawable.win);
+        gridTileSize=gblock_b.getWidth();
+        miniTileSize=mblock_b.getWidth();
         sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        sharedPrefLevel = context.getSharedPreferences("sauvegarde", Context.MODE_PRIVATE);
         initparameters();
         //début du  timer
         cv_thread = new Thread(this);
@@ -115,15 +111,35 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
 
 
     }
+    private void initLevel(){
+        int defaultValue=getResources().getInteger(R.integer.saved_level_default);
+        level =sharedPrefLevel.getInt(getResources().getString(R.string.saved_level),defaultValue);
+        if(level==1) {
+            refLevel = new RefLevel(mContext.getResources().openRawResource(R.raw.levels), level);
 
-    //Chargement du niveau a partir du tableau de reference des niveau
-    private void loadlevel() {
-        refLevel = new RefLevel(mContext.getResources().openRawResource(R.raw.levels), level);
+        }else{
+            refLevel=new RefLevel(mContext.getResources().openRawResource(R.raw.save), level);
+        }
+        loadlevel();
+
+
+    }
+    private void loadlevel(){
         miniature = refLevel.getRef();
         Toast t = Toast.makeText(mContext, "Level " + level, Toast.LENGTH_LONG);
         t.show();
         nBred = refLevel.getnBRed();
+        System.out.println(nBred+" nombre carré rouge");
+        startTimer = System.currentTimeMillis();
+        nMoves = 0;
+        appSound();
 
+        createGridAleatoire();
+    }
+    //Chargement du niveau a partir du tableau de reference des niveau
+    private void nextlevel() {
+        refLevel = new RefLevel(mContext.getResources().openRawResource(R.raw.levels), level);
+        loadlevel();
     }
 
     public void initparameters() {
@@ -137,12 +153,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         paint.setTextAlign(Paint.Align.LEFT);
         miniature = new int[matrixHeight][matrixWidth];
         grid = new int[matrixHeight][matrixWidth];
-        loadlevel();
-        startTimer = System.currentTimeMillis();
-        nMoves = 0;
-        appSound();
+        initLevel();
 
-        createGridAleatoire();
     }
 
     // Dessiner la miniature du jeu
@@ -172,10 +184,21 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
         canvas.drawText(text, 20, 80, paint);
     }
 
+    //Remise à zéro de la grille (tout en bleu)
+    private void blueGrid(){
+        //remplissage de la fin de la grille en bleu
+        for (int i=0 ; i < matrixHeight; i++) {
+            for (int j=0 ; j < matrixWidth; j++) {
+                grid[i][j] = 0;
+            }
+        }
+    }
+
     // Cree la grille aléatoire du jeu
     private void createGridAleatoire() {
         int nbr = 0;
         while (nbr != nBred) {
+            blueGrid();
             for (int i = 0; i < matrixHeight; i++) {
                 for (int j = 0; j < matrixWidth; j++) {
                     if (nbr != nBred) {
@@ -190,6 +213,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
                 }
             }
         }
+
     }
 
     // Dessine la grille aléatoire du jeu
@@ -213,7 +237,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     private boolean isWon() {
         int nbredGood = 0;
         ArrayList<Integer> a = refLevel.getInitBRed();
-        System.out.println(a.toString());
         for (int i = 0; i < a.size()-1; i++) {
             if (grid[a.get(i)][a.get(i + 1)] == 1) {
                 nbredGood++;
@@ -271,6 +294,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
     public void surfaceDestroyed(SurfaceHolder arg0) {
         Log.i("-> FCT <-", "surfaceDestroyed");
         in = false;
+        SharedPreferences.Editor editor=sharedPrefLevel.edit();
+        editor.putInt(getResources().getString(R.string.saved_level),level);
+        editor.commit();
     }
 
     public void run() {
@@ -352,10 +378,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback,Runn
                         if ((gridTopAnchor + 80 <= y1) && (y1 <= gridLeftAnchor + 80 + getHeight())) {
                             if (level == levelMax) {
                                 level = 1;
-                                initparameters();
+                                nextlevel();
                             } else {
                                 level++;
-                                initparameters();
+                                nextlevel();
                             }
                         }
                     }

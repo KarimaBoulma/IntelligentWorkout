@@ -30,7 +30,6 @@ public class MenuActivity extends AppCompatActivity {
         context= getApplicationContext();
         ch = new CharSequence[getResources().getStringArray(R.array.Params).length];
         sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
-        System.out.println(sharedPref.getAll().toString());
 
 
     }
